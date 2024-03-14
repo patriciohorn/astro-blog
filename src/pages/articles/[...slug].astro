@@ -1,24 +1,51 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro'
-import {getCollection} from 'astro:content'; 
-import type {CollectionEntry} from "astro:content"
+import Tags from '../../components/Tags.astro'
+import {getEntry} from 'astro:content' // used for getting a single object or single article in our case 
+import {formatDate} from '../../utils'
 
-export async function getStaticPaths() {
-  const allBlogArticles: CollectionEntry<'blog'>[] = await getCollection('blog'); // getting our data 
 
-  return allBlogArticles.map(entry => ({
-    params: {
-      //generate the path using slug 
-      slug: entry.slug
-    },
-    props: {entry}
-  }))
+const {slug} = Astro.params
+// slug is: the-best-laptos...(url)
+
+if(slug === undefined) {
+  throw new Error('Slug is required')
 }
 
-const { entry } = Astro.props
+// takes the collection ('blog') and the slug
+// entry will be the data 
+const entry = await getEntry('blog', slug)
+// console.log(entry)
+
+if(entry === undefined){
+  return Astro.redirect('/404')
+}
+
+// We could use the entry to get the data but we can use the Content component to get all the markdown 
+const {Content} = await entry.render() 
+
 ---
 
 <MainLayout>
-<h1>{entry.data.title}</h1>
+  <a href="/articles" class="inline-block bg-gray-100 p-2 mb-6 hover:bg-indigo-500 hover:text-white">Back To Articles</a>
+  <article>
+    <h1 class="text-4xl font-bold mb-2">{entry.data.title}</h1>
+    <h3 class="text-lg mb-2">Written by {entry.data.author} on {formatDate(entry.data.pubDate)}</h3>  
+    <Tags tags={entry.data.tags}/>
+   
+    <img src={`/images/${entry.data.image}`} alt="Article Image" class="w-full h-auto rounded-xl my-6" />
+    <Content/>
+  </article>
 </MainLayout>
+
+<style is:global>
+  p{
+    margin: 20px 0;
+  }
+
+  h2 {
+    margin: 20px 0; 
+    font-size: 1.5rem;     
+  }
+</style>
 
